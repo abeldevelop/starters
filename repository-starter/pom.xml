@@ -17,6 +17,12 @@
             <groupId>com.abeldevelop.architecture.library</groupId>
             <artifactId>common-library</artifactId>
         </dependency>
+		
+		<!-- SPRING DEPENDENCIES -->
+		<dependency>
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-jpa</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
