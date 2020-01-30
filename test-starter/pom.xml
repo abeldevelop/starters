@@ -9,14 +9,35 @@
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 
-    <artifactId>test-starter</artifactId>
+	<artifactId>test-starter</artifactId>
 
 	<dependencies>
 		<!-- ABELDEVELOP DEPENDENCIES -->
-        <dependency>
-            <groupId>com.abeldevelop.architecture.library</groupId>
-            <artifactId>common-library</artifactId>
-        </dependency>
+		<dependency>
+			<groupId>com.abeldevelop.architecture.library</groupId>
+			<artifactId>common-library</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.junit.vintage</groupId>
+					<artifactId>junit-vintage-engine</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+		</dependency>
+		
+		<!-- DATABASE DEPENDENCIES -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
