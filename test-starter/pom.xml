@@ -17,7 +17,10 @@
 			<groupId>com.abeldevelop.architecture.library</groupId>
 			<artifactId>common-library</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jdk8</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -32,7 +35,6 @@
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
 		</dependency>
-		
 		<!-- DATABASE DEPENDENCIES -->
 		<dependency>
 			<groupId>com.h2database</groupId>
