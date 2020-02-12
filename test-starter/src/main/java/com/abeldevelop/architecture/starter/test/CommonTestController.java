@@ -1,20 +1,22 @@
 package com.abeldevelop.architecture.starter.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import com.abeldevelop.architecture.library.common.dto.exception.ErrorResponseResource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -26,80 +28,43 @@ public class CommonTestController {
 
 	protected ObjectMapper objectMapper;
 
-	@BeforeEach
-	public void setUp() {
-	}
-	
 	public CommonTestController() {
 		objectMapper = new ObjectMapper()
 				.registerModule(new Jdk8Module())
 				.registerModule(new JavaTimeModule());
 	}
 
-	protected <T> T callPostEndpoint(String endpoint, Object content, int expectedStatusCode, Class<T> clazzReturn) throws Exception {
-		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = post(endpoint).content(writeValueAsString(content));
-		addHeadersToRequest(mockHttpServletRequestBuilder, null);
-		
+	protected <T> T makeRestRequest(EndpointData<T> endpointData) throws Exception {
+		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = null;
+		switch(endpointData.getMethod()) {
+			case POST:
+				mockHttpServletRequestBuilder = post(endpointData.getEndpoint()).content(writeValueAsString(endpointData.getContent()));
+				break;
+			case PUT:
+				mockHttpServletRequestBuilder = put(endpointData.getEndpoint()).content(writeValueAsString(endpointData.getContent()));
+				break;
+			case DELETE:
+				mockHttpServletRequestBuilder = delete(endpointData.getEndpoint());
+				break;
+			case GET:
+				mockHttpServletRequestBuilder = get(endpointData.getEndpoint());
+				break;
+			default:
+				throw new Exception("Method not supported!!");
+		}
+		addHeadersToRequest(mockHttpServletRequestBuilder, endpointData.getHeaders());
+		addParamsToRequest(mockHttpServletRequestBuilder, endpointData.getParams());
 		ResultActions resultActions = this.mockMvc.perform(mockHttpServletRequestBuilder);
-		checkStatusCode(resultActions, expectedStatusCode);
-		
+		checkStatusCode(resultActions, endpointData.getExpectedStatus().value());
 		MvcResult mvcResult = resultActions.andReturn();
-
-		return objectMapper.readValue(mvcResult.getResponse().getContentAsString(), clazzReturn);
-	}
-
-	protected <T> T callPutEndpoint(String endpoint, Object content, int expectedStatusCode, Class<T> clazzReturn) throws Exception {
-		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = put(endpoint).content(writeValueAsString(content));
-		addHeadersToRequest(mockHttpServletRequestBuilder, null);
+		mvcResult.getResponse().setCharacterEncoding("UTF-8");
 		
-		ResultActions resultActions = this.mockMvc.perform(mockHttpServletRequestBuilder);
-		checkStatusCode(resultActions, expectedStatusCode);
-		
-		MvcResult mvcResult = resultActions.andReturn();
-
-		return objectMapper.readValue(mvcResult.getResponse().getContentAsString(), clazzReturn);
-	}
-
-	protected <T> T callDeleteEndpoint(String endpoint, int expectedStatusCode, Class<T> clazzReturn) throws Exception {
-		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = delete(endpoint);
-		addHeadersToRequest(mockHttpServletRequestBuilder, null);
-		
-		ResultActions resultActions = this.mockMvc.perform(mockHttpServletRequestBuilder);
-		checkStatusCode(resultActions, expectedStatusCode);
-		
-		MvcResult mvcResult = resultActions.andReturn();
-		
-		if (Void.class.getCanonicalName().equals(clazzReturn.getCanonicalName())) {
+		if(Void.class.getCanonicalName().equals(endpointData.getTypeReturn().getCanonicalName())) {
 			return null;
 		}
-		return objectMapper.readValue(mvcResult.getResponse().getContentAsString(), clazzReturn);
+		return objectMapper.readValue(mvcResult.getResponse().getContentAsString(), endpointData.getTypeReturn());
 	}
-
-	protected <T> T callGetEndpoint(String endpoint, int expectedStatusCode, Class<T> clazzReturn) throws Exception {
-		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = get(endpoint);
-		addHeadersToRequest(mockHttpServletRequestBuilder, null);
-		
-		ResultActions resultActions = this.mockMvc.perform(mockHttpServletRequestBuilder);
-		checkStatusCode(resultActions, expectedStatusCode);
-		
-		MvcResult mvcResult = resultActions.andReturn();
-
-		return objectMapper.readValue(mvcResult.getResponse().getContentAsString(), clazzReturn);
-	}
-
-	protected <T> T callGetEndpoint(String endpoint, int expectedStatusCode, Class<T> clazzReturn, Map<String, String> params) throws Exception {
-		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = get(endpoint);
-		addHeadersToRequest(mockHttpServletRequestBuilder, null);
-		addParamsToRequest(mockHttpServletRequestBuilder, params);
-		
-		ResultActions resultActions = this.mockMvc.perform(mockHttpServletRequestBuilder);
-		checkStatusCode(resultActions, expectedStatusCode);
-		
-		MvcResult mvcResult = resultActions.andReturn();
-		
-		return objectMapper.readValue(mvcResult.getResponse().getContentAsString(), clazzReturn);
-	}
-
+	
 	private void checkStatusCode(ResultActions resultActions, int expectedStatusCode) throws Exception {
 		resultActions.andExpect(status().is(expectedStatusCode));
 	}
@@ -121,14 +86,22 @@ public class CommonTestController {
 	}
 
 	private void addHeadersToRequest(MockHttpServletRequestBuilder mockHttpServletRequestBuilder, Map<String, String> headers) {
-		mockHttpServletRequestBuilder.header("Content-Type", "application/json");
-		mockHttpServletRequestBuilder.header("Accept-Language", "en");
 		if(headers == null || headers.isEmpty()) {
-			return;
+			headers = getDefaultHeaders();
 		}
 		for(Map.Entry<String, String> entry : headers.entrySet()) {
-			mockHttpServletRequestBuilder.param(entry.getKey(), entry.getValue());
+			mockHttpServletRequestBuilder.header(entry.getKey(), entry.getValue());
 		}
 	}
 	
+	protected Map<String, String> getDefaultHeaders() {
+		Map<String, String> defaultHeaders = new HashMap<>();
+		defaultHeaders.put("Content-Type", "application/json");
+		defaultHeaders.put("Accept-Language", "es");
+		return defaultHeaders;
+	}
+	
+	protected void assertEqualsErrorResponseResourceMessage(String expected, ErrorResponseResource response) {
+		assertEquals(expected, response.getMessage());
+	}
 }
